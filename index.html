@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>حاسبة تكلفة الطباعة - Clinscope</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; color: #333; }
+        .container { max-width: 500px; margin: auto; background: #fff; padding: 25px; border-radius: 12px; box-shadow: 0 8px 16px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #0056b3; margin-bottom: 25px; }
+        label { display: block; margin-top: 15px; font-weight: bold; font-size: 0.95em; }
+        input, select { width: 100%; padding: 12px; margin-top: 8px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 1em; }
+        input:focus, select:focus { border-color: #0056b3; outline: none; }
+        .settings-box { background: #f9f9f9; padding: 15px; border-radius: 8px; border: 1px dashed #ccc; margin-bottom: 20px; }
+        .result { margin-top: 25px; padding: 20px; background-color: #e9f5ff; border-right: 5px solid #0056b3; border-radius: 8px; font-size: 1.3em; font-weight: bold; color: #004494; }
+        .small-text { font-size: 0.75em; color: #555; font-weight: normal; margin-top: 8px; line-height: 1.6; }
+        hr { border: 0; border-top: 1px solid #eee; margin: 20px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>🖨️ حاسبة تكلفة الطباعة</h2>
+
+        <!-- إعدادات الأسعار (يتم حفظها تلقائياً) -->
+        <div class="settings-box">
+            <p style="margin-top:0; font-size: 0.85em; color: #666;">⚙️ الأسعار تُحفظ تلقائياً في متصفحك</p>
+            <label>سعر رزمة الورق (500 ورقة): <input type="number" id="paperPrice" value="175"></label>
+            <label>سعر حبر الأسود (يكفي 7500 ورقة): <input type="number" id="blackPrice" value="700"></label>
+            <label>سعر حبر الألوان (يكفي 5000 ورقة): <input type="number" id="colorPrice" value="2100"></label>
+        </div>
+
+        <!-- تفاصيل أمر الطباعة الحالي -->
+        <label>عدد الصفحات المراد طباعتها: <input type="number" id="pageCount" value="1" min="1"></label>
+        
+        <label>نوع الطباعة:
+            <select id="printSided">
+                <option value="1">وجه واحد (Single-sided)</option>
+                <option value="2">وجهين (Double-sided - يوفر الورق)</option>
+            </select>
+        </label>
+        
+        <label>الألوان:
+            <select id="colorType">
+                <option value="bw">أبيض وأسود فقط</option>
+                <option value="color">ألوان (نصوص ورسومات)</option>
+            </select>
+        </label>
+
+        <label>جودة الطباعة (تؤثر على استهلاك الحبر):
+            <select id="printQuality">
+                <option value="0.6">مسودة (Draft - يوفر حوالي 40% من الحبر)</option>
+                <option value="1" selected>عادي (Normal - الافتراضي)</option>
+                <option value="1.5">عالية (High/Best - يستهلك حبر أكثر بـ 50%)</option>
+            </select>
+        </label>
+
+        <div class="result" id="totalCostDisplay">
+            التكلفة الإجمالية: 0.00 جنيه
+            <div class="small-text" id="perPageDisplay"></div>
+        </div>
+    </div>
+
+    <script>
+        // تعريف المتغيرات
+        const paperPriceIn = document.getElementById('paperPrice');
+        const blackPriceIn = document.getElementById('blackPrice');
+        const colorPriceIn = document.getElementById('colorPrice');
+        const pageCountIn = document.getElementById('pageCount');
+        const printSidedIn = document.getElementById('printSided');
+        const colorTypeIn = document.getElementById('colorType');
+        const printQualityIn = document.getElementById('printQuality');
+        const totalCostDisplay = document.getElementById('totalCostDisplay');
+
+        // دالة لاسترجاع القيم المحفوظة عند فتح الصفحة
+        function loadSavedValues() {
+            if(localStorage.getItem('print_paperPrice')) paperPriceIn.value = localStorage.getItem('print_paperPrice');
+            if(localStorage.getItem('print_blackPrice')) blackPriceIn.value = localStorage.getItem('print_blackPrice');
+            if(localStorage.getItem('print_colorPrice')) colorPriceIn.value = localStorage.getItem('print_colorPrice');
+            if(localStorage.getItem('print_printSided')) printSidedIn.value = localStorage.getItem('print_printSided');
+            if(localStorage.getItem('print_colorType')) colorTypeIn.value = localStorage.getItem('print_colorType');
+            if(localStorage.getItem('print_printQuality')) printQualityIn.value = localStorage.getItem('print_printQuality');
+        }
+
+        // دالة الحساب والحفظ التلقائي
+        function calculate() {
+            // حفظ القيم الحالية في المتصفح
+            localStorage.setItem('print_paperPrice', paperPriceIn.value);
+            localStorage.setItem('print_blackPrice', blackPriceIn.value);
+            localStorage.setItem('print_colorPrice', colorPriceIn.value);
+            localStorage.setItem('print_printSided', printSidedIn.value);
+            localStorage.setItem('print_colorType', colorTypeIn.value);
+            localStorage.setItem('print_printQuality', printQualityIn.value);
+
+            let paperReam = parseFloat(paperPriceIn.value) || 0;
+            let blackBottle = parseFloat(blackPriceIn.value) || 0;
+            let colorSet = parseFloat(colorPriceIn.value) || 0;
+            let pages = parseFloat(pageCountIn.value) || 1;
+            let sided = parseFloat(printSidedIn.value) || 1;
+            let type = colorTypeIn.value;
+            let qualityMultiplier = parseFloat(printQualityIn.value) || 1;
+
+            // حساب التكلفة للوحدة الأساسية (الجودة العادية)
+            let paperCostPerSheet = paperReam / 500;
+            let baseBlackCostPerSide = blackBottle / 7500;
+            let baseColorCostPerSide = colorSet / 5000;
+
+            // حساب كمية الورق الفعلية المستخدمة
+            let paperNeeded = Math.ceil(pages / sided);
+            let totalPaperCost = paperNeeded * paperCostPerSheet;
+
+            // حساب تكلفة الحبر مع تطبيق معامل الجودة
+            let inkCostPerSide = type === 'color' ? (baseBlackCostPerSide + baseColorCostPerSide) : baseBlackCostPerSide;
+            inkCostPerSide = inkCostPerSide * qualityMultiplier; 
+            
+            let totalInkCost = pages * inkCostPerSide;
+
+            let totalCost = totalPaperCost + totalInkCost;
+            let costPerLogicalPage = totalCost / pages;
+
+            // عرض النتيجة
+            totalCostDisplay.innerHTML = `التكلفة الإجمالية: <strong>${totalCost.toFixed(2)} جنيه</strong> 
+            <div class="small-text">
+                متوسط تكلفة الصفحة: ${costPerLogicalPage.toFixed(2)} جنيه<br>
+                (الورق الفعلي المستهلك: ${paperNeeded} ورقة | إجمالي تكلفة الحبر فقط: ${totalInkCost.toFixed(2)} جنيه)
+            </div>`;
+        }
+
+        // تشغيل دالة الحساب فوراً عند تغيير أي رقم أو خيار
+        const inputs = [paperPriceIn, blackPriceIn, colorPriceIn, pageCountIn, printSidedIn, colorTypeIn, printQualityIn];
+        inputs.forEach(input => input.addEventListener('input', calculate));
+
+        // تشغيل الدوال عند بداية التحميل
+        loadSavedValues();
+        calculate();
+    </script>
+</body>
+</html>
