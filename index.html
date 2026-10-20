@@ -3,135 +3,440 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>حاسبة تكلفة الطباعة - Clinscope</title>
+    <title>حاسبة تكلفة الطباعة الاحترافية</title>
+    
+    <!-- Google Fonts: Cairo -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Cairo', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            900: '#1e3a8a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; color: #333; }
-        .container { max-width: 500px; margin: auto; background: #fff; padding: 25px; border-radius: 12px; box-shadow: 0 8px 16px rgba(0,0,0,0.1); }
-        h2 { text-align: center; color: #0056b3; margin-bottom: 25px; }
-        label { display: block; margin-top: 15px; font-weight: bold; font-size: 0.95em; }
-        input, select { width: 100%; padding: 12px; margin-top: 8px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 1em; }
-        input:focus, select:focus { border-color: #0056b3; outline: none; }
-        .settings-box { background: #f9f9f9; padding: 15px; border-radius: 8px; border: 1px dashed #ccc; margin-bottom: 20px; }
-        .result { margin-top: 25px; padding: 20px; background-color: #e9f5ff; border-right: 5px solid #0056b3; border-radius: 8px; font-size: 1.3em; font-weight: bold; color: #004494; }
-        .small-text { font-size: 0.75em; color: #555; font-weight: normal; margin-top: 8px; line-height: 1.6; }
-        hr { border: 0; border-top: 1px solid #eee; margin: 20px 0; }
+        body {
+            background-color: #f8fafc;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* اخفاء أسهم الأرقام في حقول الإدخال */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+
+        /* تنسيق أزرار الاختيار (Radio Cards) */
+        .radio-card input:checked + div {
+            border-color: #3b82f6;
+            background-color: #eff6ff;
+            color: #1d4ed8;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+            transform: translateY(-2px);
+        }
+        
+        .radio-card input:checked + div .icon-wrapper {
+            color: #2563eb;
+        }
+
+        .transition-all-custom {
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* حركة النبض البسيطة عند تحديث النتيجة */
+        @keyframes subtle-pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); }
+        }
+        .pulse-animate {
+            animation: subtle-pulse 0.3s ease-in-out;
+        }
     </style>
 </head>
-<body>
-    <div class="container">
-        <h2>🖨️ حاسبة تكلفة الطباعة</h2>
+<body class="text-slate-800 antialiased min-h-screen py-8 px-4 sm:px-6 flex justify-center items-start">
 
-        <!-- إعدادات الأسعار (يتم حفظها تلقائياً) -->
-        <div class="settings-box">
-            <p style="margin-top:0; font-size: 0.85em; color: #666;">⚙️ الأسعار تُحفظ تلقائياً في متصفحك</p>
-            <label>سعر رزمة الورق (500 ورقة): <input type="number" id="paperPrice" value="175"></label>
-            <label>سعر حبر الأسود (يكفي 7500 ورقة): <input type="number" id="blackPrice" value="700"></label>
-            <label>سعر حبر الألوان (يكفي 5000 ورقة): <input type="number" id="colorPrice" value="2100"></label>
-        </div>
-
-        <!-- تفاصيل أمر الطباعة الحالي -->
-        <label>عدد الصفحات المراد طباعتها: <input type="number" id="pageCount" value="1" min="1"></label>
+    <div class="w-full max-w-4xl mx-auto space-y-6">
         
-        <label>نوع الطباعة:
-            <select id="printSided">
-                <option value="1">وجه واحد (Single-sided)</option>
-                <option value="2">وجهين (Double-sided - يوفر الورق)</option>
-            </select>
-        </label>
-        
-        <label>الألوان:
-            <select id="colorType">
-                <option value="bw">أبيض وأسود فقط</option>
-                <option value="color">ألوان (نصوص ورسومات)</option>
-            </select>
-        </label>
+        <!-- الترويسة (Header) -->
+        <header class="text-center mb-8">
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white text-brand-600 shadow-sm mb-4 border border-slate-100">
+                <i class="ph-fill ph-printer text-4xl"></i>
+            </div>
+            <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">حاسبة تكلفة الطباعة</h1>
+            <p class="text-slate-500 mt-2 font-medium">أداة احترافية لحساب تكلفة الورق والحبر بدقة</p>
+        </header>
 
-        <label>جودة الطباعة (تؤثر على استهلاك الحبر):
-            <select id="printQuality">
-                <option value="0.6">مسودة (Draft - يوفر حوالي 40% من الحبر)</option>
-                <option value="1" selected>عادي (Normal - الافتراضي)</option>
-                <option value="1.5">عالية (High/Best - يستهلك حبر أكثر بـ 50%)</option>
-            </select>
-        </label>
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            <!-- القسم الأيمن: المدخلات والإعدادات -->
+            <div class="lg:col-span-7 space-y-6">
+                
+                <!-- الكارت 1: تفاصيل أمر الطباعة -->
+                <div class="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200/60">
+                    <div class="flex items-center gap-2 mb-6">
+                        <i class="ph-fill ph-file-text text-2xl text-brand-500"></i>
+                        <h2 class="text-xl font-bold text-slate-800">تفاصيل الطباعة</h2>
+                    </div>
 
-        <div class="result" id="totalCostDisplay">
-            التكلفة الإجمالية: 0.00 جنيه
-            <div class="small-text" id="perPageDisplay"></div>
+                    <div class="space-y-6">
+                        <!-- عدد الصفحات -->
+                        <div>
+                            <label for="pageCount" class="block text-sm font-bold text-slate-700 mb-2">عدد الصفحات المراد طباعتها</label>
+                            <div class="relative group">
+                                <div class="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none text-slate-400 group-focus-within:text-brand-500 transition-colors">
+                                    <i class="ph ph-hash text-xl"></i>
+                                </div>
+                                <input type="number" id="pageCount" value="1" min="1" class="w-full pr-12 pl-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-brand-500 focus:bg-white outline-none transition-all-custom text-lg font-bold text-slate-900">
+                                <div class="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
+                                    <span class="text-sm font-semibold text-slate-400">صفحة</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- الألوان -->
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-2">نظام الألوان</label>
+                            <div class="grid grid-cols-2 gap-3">
+                                <label class="radio-card cursor-pointer block">
+                                    <input type="radio" name="colorType" value="bw" class="hidden" checked>
+                                    <div class="border border-slate-200 bg-white rounded-xl p-4 flex items-center gap-3 transition-all-custom hover:bg-slate-50 text-slate-600">
+                                        <div class="icon-wrapper bg-slate-100 p-2 rounded-lg text-slate-500 transition-colors">
+                                            <i class="ph-fill ph-drop-half-bottom text-xl"></i>
+                                        </div>
+                                        <div>
+                                            <div class="font-bold text-sm">أبيض وأسود</div>
+                                            <div class="text-xs opacity-75 mt-0.5">نصوص ومستندات</div>
+                                        </div>
+                                    </div>
+                                </label>
+                                <label class="radio-card cursor-pointer block">
+                                    <input type="radio" name="colorType" value="color" class="hidden">
+                                    <div class="border border-slate-200 bg-white rounded-xl p-4 flex items-center gap-3 transition-all-custom hover:bg-slate-50 text-slate-600">
+                                        <div class="icon-wrapper bg-slate-100 p-2 rounded-lg text-slate-500 transition-colors">
+                                            <i class="ph-fill ph-palette text-xl" style="background: linear-gradient(45deg, #ef4444, #3b82f6, #10b981); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"></i>
+                                        </div>
+                                        <div>
+                                            <div class="font-bold text-sm">ألوان كاملة</div>
+                                            <div class="text-xs opacity-75 mt-0.5">رسومات وصور</div>
+                                        </div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- وجه ولا وجهين -->
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-2">طريقة الطباعة (توفير الورق)</label>
+                            <div class="grid grid-cols-2 gap-3">
+                                <label class="radio-card cursor-pointer block">
+                                    <input type="radio" name="printSided" value="1" class="hidden" checked>
+                                    <div class="border border-slate-200 bg-white rounded-xl p-3 flex justify-center items-center gap-2 transition-all-custom hover:bg-slate-50 text-slate-600">
+                                        <i class="ph ph-file-dashed text-lg"></i>
+                                        <span class="font-bold text-sm">وجه واحد</span>
+                                    </div>
+                                </label>
+                                <label class="radio-card cursor-pointer block">
+                                    <input type="radio" name="printSided" value="2" class="hidden">
+                                    <div class="border border-slate-200 bg-white rounded-xl p-3 flex justify-center items-center gap-2 transition-all-custom hover:bg-slate-50 text-slate-600">
+                                        <i class="ph ph-files text-lg"></i>
+                                        <span class="font-bold text-sm">وجهين (يوفر 50%)</span>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- جودة الطباعة -->
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-2">جودة الطباعة (استهلاك الحبر)</label>
+                            <div class="grid grid-cols-3 gap-2">
+                                <label class="radio-card cursor-pointer block">
+                                    <input type="radio" name="printQuality" value="0.6" class="hidden">
+                                    <div class="border border-slate-200 bg-white rounded-lg p-2.5 flex flex-col items-center text-center gap-1 transition-all-custom hover:bg-slate-50 text-slate-600">
+                                        <i class="ph ph-wind text-lg"></i>
+                                        <span class="font-bold text-xs">مسودة (سريع)</span>
+                                    </div>
+                                </label>
+                                <label class="radio-card cursor-pointer block">
+                                    <input type="radio" name="printQuality" value="1" class="hidden" checked>
+                                    <div class="border border-slate-200 bg-white rounded-lg p-2.5 flex flex-col items-center text-center gap-1 transition-all-custom hover:bg-slate-50 text-slate-600">
+                                        <i class="ph ph-check-circle text-lg"></i>
+                                        <span class="font-bold text-xs">عادي (تلقائي)</span>
+                                    </div>
+                                </label>
+                                <label class="radio-card cursor-pointer block">
+                                    <input type="radio" name="printQuality" value="1.5" class="hidden">
+                                    <div class="border border-slate-200 bg-white rounded-lg p-2.5 flex flex-col items-center text-center gap-1 transition-all-custom hover:bg-slate-50 text-slate-600">
+                                        <i class="ph ph-diamond text-lg"></i>
+                                        <span class="font-bold text-xs">عالية (دقيق)</span>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- الكارت 2: الإعدادات الأساسية (الأسعار) -->
+                <details class="bg-white rounded-3xl shadow-sm border border-slate-200/60 group cursor-pointer" open>
+                    <summary class="p-6 sm:p-8 flex items-center justify-between font-bold text-slate-800 list-none outline-none">
+                        <div class="flex items-center gap-2">
+                            <i class="ph-fill ph-gear text-2xl text-slate-400 group-hover:rotate-90 transition-transform duration-300"></i>
+                            <span class="text-lg">إعدادات الأسعار</span>
+                            <span class="text-xs font-normal bg-brand-100 text-brand-700 px-2 py-1 rounded-full mr-2">تُحفظ تلقائياً</span>
+                        </div>
+                        <i class="ph ph-caret-down text-slate-400 group-open:-rotate-180 transition-transform duration-300"></i>
+                    </summary>
+                    
+                    <div class="px-6 sm:px-8 pb-8 space-y-4 border-t border-slate-100 pt-6 cursor-default">
+                        
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <!-- سعر الورق -->
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 mb-1.5 flex items-center gap-1">
+                                    <i class="ph ph-stack"></i> سعر رزمة الورق (500)
+                                </label>
+                                <div class="relative">
+                                    <input type="number" id="paperPrice" value="175" class="w-full pl-10 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-1 focus:ring-brand-500 focus:border-brand-500 focus:bg-white outline-none transition-all-custom font-bold text-slate-800 text-sm">
+                                    <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                                        <span class="text-xs font-semibold text-slate-400">ج.م</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- سعر الأسود -->
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 mb-1.5 flex items-center gap-1">
+                                    <i class="ph ph-drop"></i> سعر الأسود (7500)
+                                </label>
+                                <div class="relative">
+                                    <input type="number" id="blackPrice" value="700" class="w-full pl-10 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-1 focus:ring-brand-500 focus:border-brand-500 focus:bg-white outline-none transition-all-custom font-bold text-slate-800 text-sm">
+                                    <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                                        <span class="text-xs font-semibold text-slate-400">ج.م</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- سعر الألوان -->
+                            <div class="sm:col-span-2">
+                                <label class="block text-xs font-bold text-slate-500 mb-1.5 flex items-center gap-1">
+                                    <i class="ph ph-paint-brush"></i> طقم الألوان (5000)
+                                </label>
+                                <div class="relative">
+                                    <input type="number" id="colorPrice" value="2100" class="w-full pl-10 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-1 focus:ring-brand-500 focus:border-brand-500 focus:bg-white outline-none transition-all-custom font-bold text-slate-800 text-sm">
+                                    <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                                        <span class="text-xs font-semibold text-slate-400">ج.م</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </details>
+
+            </div>
+
+            <!-- القسم الأيسر: شاشة النتائج -->
+            <div class="lg:col-span-5 relative">
+                <!-- الـ Sticky Box ليظل ثابتاً عند النزول لأسفل في الشاشات الكبيرة -->
+                <div class="sticky top-6">
+                    <div id="resultsCard" class="bg-gradient-to-br from-brand-600 to-brand-900 rounded-3xl p-8 shadow-xl text-white relative overflow-hidden transition-all-custom">
+                        
+                        <!-- زخرفة الخلفية -->
+                        <div class="absolute -bottom-10 -right-10 opacity-10 pointer-events-none">
+                            <i class="ph-fill ph-calculator" style="font-size: 250px;"></i>
+                        </div>
+
+                        <div class="relative z-10">
+                            <p class="text-brand-200 font-semibold mb-2 flex items-center gap-2">
+                                <i class="ph ph-receipt"></i> التكلفة الإجمالية للطباعة
+                            </p>
+                            
+                            <div class="flex items-baseline gap-2 mb-8">
+                                <span id="totalCost" class="text-6xl font-extrabold tracking-tight">0.00</span>
+                                <span class="text-xl font-bold text-brand-300">ج.م</span>
+                            </div>
+
+                            <hr class="border-brand-500/30 mb-6">
+
+                            <h3 class="text-sm font-bold text-brand-200 mb-4 opacity-80 uppercase tracking-widest">تفاصيل الاستهلاك</h3>
+                            
+                            <div class="space-y-4">
+                                <!-- تكلفة الصفحة -->
+                                <div class="bg-white/10 backdrop-blur-md rounded-xl p-4 flex justify-between items-center border border-white/5">
+                                    <div class="flex items-center gap-3">
+                                        <div class="bg-brand-500/30 p-2 rounded-lg"><i class="ph ph-coins text-lg"></i></div>
+                                        <span class="font-semibold text-sm">متوسط تكلفة الوجه</span>
+                                    </div>
+                                    <div class="font-bold text-lg"><span id="costPerPage">0.00</span> <span class="text-xs text-brand-300">ج</span></div>
+                                </div>
+
+                                <!-- الورق المستخدم -->
+                                <div class="bg-white/10 backdrop-blur-md rounded-xl p-4 flex justify-between items-center border border-white/5">
+                                    <div class="flex items-center gap-3">
+                                        <div class="bg-brand-500/30 p-2 rounded-lg"><i class="ph ph-copy text-lg"></i></div>
+                                        <span class="font-semibold text-sm">الورق الفعلي (ورقة)</span>
+                                    </div>
+                                    <div class="font-bold text-lg"><span id="sheetsUsed">0</span> <span class="text-xs text-brand-300">ورقة</span></div>
+                                </div>
+
+                                <!-- إجمالي الحبر -->
+                                <div class="bg-white/10 backdrop-blur-md rounded-xl p-4 flex justify-between items-center border border-white/5">
+                                    <div class="flex items-center gap-3">
+                                        <div class="bg-brand-500/30 p-2 rounded-lg"><i class="ph ph-drop text-lg"></i></div>
+                                        <span class="font-semibold text-sm">إجمالي تكلفة الحبر</span>
+                                    </div>
+                                    <div class="font-bold text-lg"><span id="totalInkCost">0.00</span> <span class="text-xs text-brand-300">ج</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- رسالة تشجيعية تحت النتائج -->
+                    <div class="text-center mt-6 flex items-center justify-center gap-2 text-slate-500 text-sm font-semibold">
+                        <i class="ph-fill ph-check-circle text-emerald-500 text-lg"></i>
+                        يتم تحديث الحسابات لحظياً
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
 
     <script>
-        // تعريف المتغيرات
-        const paperPriceIn = document.getElementById('paperPrice');
-        const blackPriceIn = document.getElementById('blackPrice');
-        const colorPriceIn = document.getElementById('colorPrice');
-        const pageCountIn = document.getElementById('pageCount');
-        const printSidedIn = document.getElementById('printSided');
-        const colorTypeIn = document.getElementById('colorType');
-        const printQualityIn = document.getElementById('printQuality');
-        const totalCostDisplay = document.getElementById('totalCostDisplay');
+        // تعريف عناصر الإدخال
+        const inputs = {
+            paper: document.getElementById('paperPrice'),
+            black: document.getElementById('blackPrice'),
+            color: document.getElementById('colorPrice'),
+            pages: document.getElementById('pageCount')
+        };
 
-        // دالة لاسترجاع القيم المحفوظة عند فتح الصفحة
-        function loadSavedValues() {
-            if(localStorage.getItem('print_paperPrice')) paperPriceIn.value = localStorage.getItem('print_paperPrice');
-            if(localStorage.getItem('print_blackPrice')) blackPriceIn.value = localStorage.getItem('print_blackPrice');
-            if(localStorage.getItem('print_colorPrice')) colorPriceIn.value = localStorage.getItem('print_colorPrice');
-            if(localStorage.getItem('print_printSided')) printSidedIn.value = localStorage.getItem('print_printSided');
-            if(localStorage.getItem('print_colorType')) colorTypeIn.value = localStorage.getItem('print_colorType');
-            if(localStorage.getItem('print_printQuality')) printQualityIn.value = localStorage.getItem('print_printQuality');
+        // تعريف عناصر العرض
+        const outputs = {
+            total: document.getElementById('totalCost'),
+            perPage: document.getElementById('costPerPage'),
+            sheets: document.getElementById('sheetsUsed'),
+            ink: document.getElementById('totalInkCost'),
+            card: document.getElementById('resultsCard')
+        };
+
+        // دالة لتحريك كارت النتيجة (Pulse Effect)
+        function triggerPulse() {
+            outputs.card.classList.remove('pulse-animate');
+            void outputs.card.offsetWidth; // Trigger reflow to restart animation
+            outputs.card.classList.add('pulse-animate');
         }
 
-        // دالة الحساب والحفظ التلقائي
-        function calculate() {
-            // حفظ القيم الحالية في المتصفح
-            localStorage.setItem('print_paperPrice', paperPriceIn.value);
-            localStorage.setItem('print_blackPrice', blackPriceIn.value);
-            localStorage.setItem('print_colorPrice', colorPriceIn.value);
-            localStorage.setItem('print_printSided', printSidedIn.value);
-            localStorage.setItem('print_colorType', colorTypeIn.value);
-            localStorage.setItem('print_printQuality', printQualityIn.value);
+        // استرجاع القيم من localStorage
+        function loadSavedValues() {
+            if(localStorage.getItem('pro_paperPrice')) inputs.paper.value = localStorage.getItem('pro_paperPrice');
+            if(localStorage.getItem('pro_blackPrice')) inputs.black.value = localStorage.getItem('pro_blackPrice');
+            if(localStorage.getItem('pro_colorPrice')) inputs.color.value = localStorage.getItem('pro_colorPrice');
+            
+            const savedColorType = localStorage.getItem('pro_colorType');
+            if(savedColorType) document.querySelector(`input[name="colorType"][value="${savedColorType}"]`).checked = true;
 
-            let paperReam = parseFloat(paperPriceIn.value) || 0;
-            let blackBottle = parseFloat(blackPriceIn.value) || 0;
-            let colorSet = parseFloat(colorPriceIn.value) || 0;
-            let pages = parseFloat(pageCountIn.value) || 1;
-            let sided = parseFloat(printSidedIn.value) || 1;
-            let type = colorTypeIn.value;
-            let qualityMultiplier = parseFloat(printQualityIn.value) || 1;
+            const savedPrintSided = localStorage.getItem('pro_printSided');
+            if(savedPrintSided) document.querySelector(`input[name="printSided"][value="${savedPrintSided}"]`).checked = true;
 
-            // حساب التكلفة للوحدة الأساسية (الجودة العادية)
+            const savedQuality = localStorage.getItem('pro_printQuality');
+            if(savedQuality) document.querySelector(`input[name="printQuality"][value="${savedQuality}"]`).checked = true;
+        }
+
+        // الحساب والحفظ
+        function calculateCosts() {
+            // جلب القيم الحالية من أزرار الاختيار (Radio)
+            const colorTypeVal = document.querySelector('input[name="colorType"]:checked').value;
+            const printSidedVal = document.querySelector('input[name="printSided"]:checked').value;
+            const printQualityVal = document.querySelector('input[name="printQuality"]:checked').value;
+
+            // حفظ في المتصفح
+            localStorage.setItem('pro_paperPrice', inputs.paper.value);
+            localStorage.setItem('pro_blackPrice', inputs.black.value);
+            localStorage.setItem('pro_colorPrice', inputs.color.value);
+            localStorage.setItem('pro_colorType', colorTypeVal);
+            localStorage.setItem('pro_printSided', printSidedVal);
+            localStorage.setItem('pro_printQuality', printQualityVal);
+
+            // تحويل للنصوص إلى أرقام
+            let paperReam = parseFloat(inputs.paper.value) || 0;
+            let blackBottle = parseFloat(inputs.black.value) || 0;
+            let colorSet = parseFloat(inputs.color.value) || 0;
+            let pages = parseFloat(inputs.pages.value) || 1;
+            let sided = parseFloat(printSidedVal) || 1;
+            let qualityMultiplier = parseFloat(printQualityVal) || 1;
+
+            if (pages < 1) pages = 1; // منع القسمة على صفر أو القيم السالبة
+
+            // العمليات الحسابية
             let paperCostPerSheet = paperReam / 500;
             let baseBlackCostPerSide = blackBottle / 7500;
             let baseColorCostPerSide = colorSet / 5000;
 
-            // حساب كمية الورق الفعلية المستخدمة
             let paperNeeded = Math.ceil(pages / sided);
             let totalPaperCost = paperNeeded * paperCostPerSheet;
 
-            // حساب تكلفة الحبر مع تطبيق معامل الجودة
-            let inkCostPerSide = type === 'color' ? (baseBlackCostPerSide + baseColorCostPerSide) : baseBlackCostPerSide;
+            let inkCostPerSide = (colorTypeVal === 'color') ? (baseBlackCostPerSide + baseColorCostPerSide) : baseBlackCostPerSide;
             inkCostPerSide = inkCostPerSide * qualityMultiplier; 
             
             let totalInkCost = pages * inkCostPerSide;
-
             let totalCost = totalPaperCost + totalInkCost;
             let costPerLogicalPage = totalCost / pages;
 
-            // عرض النتيجة
-            totalCostDisplay.innerHTML = `التكلفة الإجمالية: <strong>${totalCost.toFixed(2)} جنيه</strong> 
-            <div class="small-text">
-                متوسط تكلفة الصفحة: ${costPerLogicalPage.toFixed(2)} جنيه<br>
-                (الورق الفعلي المستهلك: ${paperNeeded} ورقة | إجمالي تكلفة الحبر فقط: ${totalInkCost.toFixed(2)} جنيه)
-            </div>`;
+            // تحديث واجهة المستخدم مع تنسيق الأرقام
+            outputs.total.innerText = totalCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            outputs.perPage.innerText = costPerLogicalPage.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            outputs.sheets.innerText = paperNeeded;
+            outputs.ink.innerText = totalInkCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            
+            triggerPulse();
         }
 
-        // تشغيل دالة الحساب فوراً عند تغيير أي رقم أو خيار
-        const inputs = [paperPriceIn, blackPriceIn, colorPriceIn, pageCountIn, printSidedIn, colorTypeIn, printQualityIn];
-        inputs.forEach(input => input.addEventListener('input', calculate));
+        // إضافة أحداث التغيير (Event Listeners)
+        // للحقول النصية
+        Object.values(inputs).forEach(input => {
+            input.addEventListener('input', calculateCosts);
+        });
 
-        // تشغيل الدوال عند بداية التحميل
-        loadSavedValues();
-        calculate();
+        // لأزرار الاختيار (Radio Buttons)
+        document.querySelectorAll('input[type="radio"]').forEach(radio => {
+            radio.addEventListener('change', calculateCosts);
+        });
+
+        // التهيئة المبدئية عند التحميل
+        document.addEventListener('DOMContentLoaded', () => {
+            loadSavedValues();
+            calculateCosts();
+        });
     </script>
 </body>
 </html>
